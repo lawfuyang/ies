@@ -38,6 +38,8 @@
 #include <assert.h>
 #include <algorithm>
 #include <functional>
+#include <cstdint>
+#include <cmath>
 
 IESFileInfo::IESFileInfo()
 	: _cachedIntegral(std::numeric_limits<float>::max())
@@ -240,12 +242,12 @@ IESLoadHelper::saveAs1D(const IESFileInfo& info, float* data, std::uint32_t widt
 	assert(channel == 1 || channel == 3 || channel == 4);
 	assert(info.valid());
 
-	float invW = 1.0f / width;
+	float invW = 1.0f / static_cast<float>(width);
 	float invMaxValue = this->computeInvMax(info._candalaValues);
 
 	for (std::uint32_t x = 0; x < width; ++x)
 	{
-		float fraction = x * invW;
+		float fraction = static_cast<float>(x) * invW;
 		float value = invMaxValue * interpolate1D(info, fraction * 180.0f);
 
 		switch (channel)
@@ -280,16 +282,16 @@ IESLoadHelper::saveAs2D(const IESFileInfo& info, float* data, std::uint32_t widt
 	assert(channel == 1 || channel == 3 || channel == 4);
 	assert(info.valid());
 
-	float invW = 1.0f / width;
-	float invH = 1.0f / height;
+	float invW = 1.0f / static_cast<float>(width);
+	float invH = 1.0f / static_cast<float>(height);
 	float invMaxValue = this->computeInvMax(info._candalaValues);
 
 	for (std::uint32_t y = 0; y < height; ++y)
 	{
 		for (std::uint32_t x = 0; x < width; ++x)
 		{
-			float fractionV = x * invW * 180.0f;
-			float fractionH = y * invH * 180.0f;
+			float fractionV = static_cast<float>(x) * invW * 180.0f;
+			float fractionH = static_cast<float>(y) * invH * 180.0f;
 			float value = invMaxValue * interpolate2D(info, fractionV, fractionH);
 
 			switch (channel)
@@ -342,12 +344,12 @@ IESLoadHelper::saveAsPreview(const IESFileInfo& info, std::uint8_t* data, std::u
 		return ((x*(A*x + C*B) + D*E) / (x*(A*x + B) + D*F)) - E / F;
 	};
 
-	for (int y = 0; y < height; y++)
+	for (std::uint32_t y = 0; y < height; y++)
 	{
-		for (int x = 0; x < width; x++)
+		for (std::uint32_t x = 0; x < width; x++)
 		{
-			float u = ((float)x / width) * 2.0f - 1.0f;
-			float v = 1.0f - ((float)y / height) * 2.0f - 1.0f;
+			float u = (static_cast<float>(x) / static_cast<float>(width)) * 2.0f - 1.0f;
+			float v = 1.0f - (static_cast<float>(y) / static_cast<float>(height)) * 2.0f - 1.0f;
 
 			u *= 2.2f;
 			v *= 2.4f;
@@ -445,7 +447,7 @@ IESLoadHelper::computeFilterPos(float value, const std::vector<float>& angles) c
 		}
 	}
 
-	return start + fraction;
+	return static_cast<float>(start) + fraction;
 }
 
 float
@@ -472,8 +474,6 @@ IESLoadHelper::interpolate2D(const IESFileInfo& info, float angleV, float angleH
 float
 IESLoadHelper::interpolatePoint(const IESFileInfo& info, std::uint32_t x, std::uint32_t y) const
 {
-	assert(x >= 0);
-	assert(y >= 0);
 
 	std::size_t anglesNumH = info._anglesH.size();
 	std::size_t anglesNumV = info._anglesV.size();
@@ -493,8 +493,8 @@ IESLoadHelper::interpolateBilinear(const IESFileInfo& info, float x, float y) co
 	int ix = (int)std::floor(x);
 	int iy = (int)std::floor(y);
 
-	float fracX = x - ix;
-	float fracY = y - iy;
+	float fracX = x - static_cast<float>(ix);
+	float fracY = y - static_cast<float>(iy);
 
 	float p00 = this->interpolatePoint(info, ix + 0, iy + 0);
 	float p10 = this->interpolatePoint(info, ix + 1, iy + 0);

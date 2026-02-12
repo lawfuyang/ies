@@ -35,12 +35,15 @@ bool IES2HDR(const std::string& path, const std::string& outpath, IESFileInfo& i
 		return false;
 
 	IESOutputData HDRdata;
-	HDRdata.width = 256;
-	HDRdata.height = 1;
+	HDRdata.width = 128;
+	HDRdata.height = 128;
 	HDRdata.channel = 3;
-	HDRdata.stream.resize(HDRdata.width * HDRdata.channel);
+	HDRdata.stream.resize(HDRdata.width * HDRdata.height * HDRdata.channel);
 
-	if (!IESLoader.saveAs1D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.channel))
+	// if (!IESLoader.saveAs1D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.channel))
+	// 	return false;
+
+	if (!IESLoader.saveAs2D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.height, HDRdata.channel))
 		return false;
 
 	FILE* fp = std::fopen(outpath.c_str(), "wb");
@@ -155,6 +158,5 @@ int main(int argc, const char* argv[])
 		std::cerr << e.what() << std::endl;
 	}
 
-	std::system("pause");
 	return 0;
 }
