@@ -37,11 +37,8 @@ bool IES2HDR(const std::string& path, const std::string& outpath, IESFileInfo& i
 		return false;
 
 	IESOutputData HDRdata;
-	HDRdata.width = 128;
-	HDRdata.height = 128;
 	HDRdata.channel = 3;
-	HDRdata.stream.resize(HDRdata.width * HDRdata.height * HDRdata.channel);
-
+	
 	// Determine whether to save as 1D or 2D based on horizontal angle variations
 	bool use1D = false;
 
@@ -108,6 +105,19 @@ bool IES2HDR(const std::string& path, const std::string& outpath, IESFileInfo& i
 		std::cout << "IES2HDR Info: Average horizontal variation coefficient: " << avgVariation << std::endl;
 		std::cout << "IES2HDR Info: " << (use1D ? "Minimal" : "Significant") << " horizontal variation detected, saving as " << (use1D ? "1D" : "2D") << " HDR." << std::endl;
 	}
+
+	if (use1D)
+	{
+		HDRdata.width = 256;
+		HDRdata.height = 1;
+	}
+	else
+	{
+		HDRdata.width = 128;
+		HDRdata.height = 128;
+	}
+
+	HDRdata.stream.resize(HDRdata.width * HDRdata.height * HDRdata.channel);
 
 	if (use1D)
 	{
