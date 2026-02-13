@@ -59,6 +59,24 @@ IESFileInfo::error() const
 	return _error;
 }
 
+const std::vector<float>&
+IESFileInfo::getCandalaValues() const
+{
+	return _candalaValues;
+}
+
+const std::vector<float>&
+IESFileInfo::getAnglesH() const
+{
+	return _anglesH;
+}
+
+const std::vector<float>&
+IESFileInfo::getAnglesV() const
+{
+	return _anglesV;
+}
+
 IESLoadHelper::IESLoadHelper()
 {
 }

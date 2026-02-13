@@ -50,6 +50,10 @@ public:
 
 	const std::string& error() const;
 
+	const std::vector<float>& getCandalaValues() const;
+	const std::vector<float>& getAnglesH() const;
+	const std::vector<float>& getAnglesV() const;
+
 public:
 	float totalLights;
 	float totalLumens;

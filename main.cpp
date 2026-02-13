@@ -4,6 +4,8 @@
 #include <io.h>
 #include <fstream>
 #include <iostream>
+#include <limits>
+#include <cmath>
 
 struct IESOutputData
 {
@@ -40,11 +42,83 @@ bool IES2HDR(const std::string& path, const std::string& outpath, IESFileInfo& i
 	HDRdata.channel = 3;
 	HDRdata.stream.resize(HDRdata.width * HDRdata.height * HDRdata.channel);
 
-	// if (!IESLoader.saveAs1D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.channel))
-	// 	return false;
+	// Determine whether to save as 1D or 2D based on horizontal angle variations
+	bool use1D = false;
 
-	if (!IESLoader.saveAs2D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.height, HDRdata.channel))
-		return false;
+	if (info.anglesNumH <= 1)
+	{
+		// Only 1 horizontal angle, use 1D
+		use1D = true;
+
+		std::cout << "IES2HDR Info: Only 1 horizontal angle detected, saving as 1D HDR." << std::endl;
+	}
+	else
+	{
+		// Multiple horizontal angles - check for minimal variation
+		// We'll use a liberal threshold: if variation is minimal, still use 1D
+		
+		// Compute coefficient of variation across horizontal angles
+		// For each vertical angle, compare the candela values across all horizontal angles
+		double avgVariation = 0.0;
+		int verticalAngles = info.anglesNumV;
+		int horizontalAngles = info.anglesNumH;
+		const auto& candalaValues = info.getCandalaValues();
+
+		for (int v = 0; v < verticalAngles; ++v)
+		{
+			// Get candela values for this vertical angle across all horizontal angles
+			float minVal = std::numeric_limits<float>::max();
+			float maxVal = std::numeric_limits<float>::lowest();
+			double sum = 0.0;
+			double sumSq = 0.0;
+
+			for (int h = 0; h < horizontalAngles; ++h)
+			{
+				// candalaValues is organized as: [H0V0, H0V1, ..., H0V(n-1), H1V0, ...]
+				float val = candalaValues[h * verticalAngles + v];
+				
+				minVal = std::min(minVal, val);
+				maxVal = std::max(maxVal, val);
+				sum += val;
+				sumSq += val * val;
+			}
+
+			// Compute coefficient of variation for this vertical angle
+			if (sum > 0.0)
+			{
+				double mean = sum / horizontalAngles;
+				double variance = (sumSq / horizontalAngles) - (mean * mean);
+				double stdDev = std::sqrt(std::max(0.0, variance));
+				double coeffVar = stdDev / mean;
+				avgVariation += coeffVar;
+
+				// Also check max/min ratio as an alternative
+				if (minVal > 0.0f && maxVal / minVal > 1.2f)
+					avgVariation += 0.5; // Penalize large max/min ratio
+			}
+		}
+
+		avgVariation /= verticalAngles;
+
+		const double kVariationThreshold = 0.15;
+
+		// Liberal threshold: use 1D if average variation is small
+		use1D = (avgVariation < kVariationThreshold);
+
+		std::cout << "IES2HDR Info: Average horizontal variation coefficient: " << avgVariation << std::endl;
+		std::cout << "IES2HDR Info: " << (use1D ? "Minimal" : "Significant") << " horizontal variation detected, saving as " << (use1D ? "1D" : "2D") << " HDR." << std::endl;
+	}
+
+	if (use1D)
+	{
+		if (!IESLoader.saveAs1D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.channel))
+			return false;
+	}
+	else
+	{
+		if (!IESLoader.saveAs2D(info, HDRdata.stream.data(), HDRdata.width, HDRdata.height, HDRdata.channel))
+			return false;
+	}
 
 	FILE* fp = std::fopen(outpath.c_str(), "wb");
 	if (!fp)
